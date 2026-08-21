@@ -27,3 +27,4 @@ jobs:
       - run: PGPASSWORD=employee_pass psql -h localhost -U employee_user -d employee_db -f db/init/01-schema.sql && PGPASSWORD=employee_pass psql -h localhost -U employee_user -d employee_db -f db/init/02-seed.sql
       - run: make harness-test
       - run: make validate || true
+      - run: make parity || true
