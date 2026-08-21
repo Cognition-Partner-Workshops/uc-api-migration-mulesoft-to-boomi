@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: employee_db
+          POSTGRES_USER: employee_user
+          POSTGRES_PASSWORD: employee_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U employee_user -d employee_db"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: docker cp db/init/. "$(docker ps -q --filter ancestor=postgres:16-alpine)":/docker-entrypoint-initdb.d/
+      - run: PGPASSWORD=employee_pass psql -h localhost -U employee_user -d employee_db -f db/init/01-schema.sql && PGPASSWORD=employee_pass psql -h localhost -U employee_user -d employee_db -f db/init/02-seed.sql
+      - run: make harness-test
+      - run: make validate || true
